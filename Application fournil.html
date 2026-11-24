@@ -47,7 +47,7 @@ main{padding:12px 16px 40px;max-width:640px;margin:auto}
 #lb{position:fixed;inset:0;background:rgba(0,0,0,.94);display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;z-index:20}
 #lbc{max-width:640px;margin:auto;padding:calc(56px + env(safe-area-inset-top,0px)) 12px calc(30px + env(safe-area-inset-bottom,0px))}
 #lbc img{display:block;width:100%;border-radius:12px;margin:0 0 16px}
-#lbc .cap{color:#fff;font-size:15px;margin:0 0 8px}
+#lbc .cap{color:#fff;font-size:18px;line-height:1.35;font-weight:500;margin:0 0 8px}
 #lbx{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:12px;z-index:21;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:22px}
 
 .who{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;font-size:13px;color:var(--muted)}
@@ -77,6 +77,20 @@ main{padding:12px 16px 40px;max-width:640px;margin:auto}
 .lnk{color:var(--accent);text-decoration:underline;word-break:break-all}
 .rte{min-height:120px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-size:16px;line-height:1.45;outline:none;white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text;margin:4px 0}
 .rte a{color:var(--accent);text-decoration:underline}
+
+.rm{position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;background:#e9e4d8 repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 1px,transparent 1px 60px),repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 1px,transparent 1px 60px)}
+.rm.inl{height:340px;border-radius:14px;border:2px solid var(--line)}
+.rml{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0}
+.mcs{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:8px;z-index:3}
+.mc{position:relative;width:36px;height:36px;border-radius:10px;border:1px solid rgba(0,0,0,.25);background:rgba(255,255,255,.93);color:#000;font-size:18px;font-family:inherit;padding:0;line-height:1;cursor:pointer}
+.mc::after{content:"";position:absolute;inset:-4px}
+.att{position:absolute;right:4px;bottom:2px;font-size:10px;background:rgba(255,255,255,.85);color:#000;padding:0 4px;border-radius:4px;z-index:3;pointer-events:none}
+.sc{position:absolute;left:6px;bottom:4px;z-index:3;font-size:10px;color:#000;background:rgba(255,255,255,.8);border:2px solid #000;border-top:0;text-align:center;line-height:12px;pointer-events:none}
+#mfs{position:fixed;inset:0;z-index:40;background:#e9e4d8}
+#mfs .rm{position:absolute;inset:0}
+#mfs .mcs{top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px))}
+#mfs .att{bottom:calc(2px + env(safe-area-inset-bottom,0px))}
+#mfs .sc{bottom:calc(4px + env(safe-area-inset-bottom,0px))}
 </style>
 </head>
 <body>
@@ -85,70 +99,39 @@ main{padding:12px 16px 40px;max-width:640px;margin:auto}
 <main id="app"></main>
 <div id="ed"></div>
 <div id="lb"><button id="lbx" aria-label="Fermer">✕</button><div id="lbc"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-/* Couche de connexion Supabase : remplace l'environnement Claude (comptes, base de données, photos) */
+/* ===== CONNEXION AU SERVEUR (Firebase, gratuit) : colle ici tes 4 valeurs, voir les explications ===== */
+window.FB_CONFIG={apiKey:"AIzaSyASnH9ueUCkaPDT_oAxITUwlPlUfr5oNrw",authDomain:"fj-livraison-48317.firebaseapp.com",projectId:"fj-livraison-48317",storageBucket:"fj-livraison-48317.firebasestorage.app",messagingSenderId:"341623447872",appId:"1:341623447872:web:ed9910677a63b3219f9aa5"};
+window.PC={};
+</script>
+<script>
 (function(){
-var SB_URL="https://rtemehnrnqfscunsebhb.supabase.co",SB_KEY="sb_publishable_u0sTxaSnwZwAzBfqnnFIfQ_K9rRR9qu",DOM="tournees-nuit.app";
-var sb=supabase.createClient(SB_URL,SB_KEY),me=null,ready=null;
-function slug(x){return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"")}
-function mail(f,l){return slug(f)+"."+slug(l)+"@"+DOM}
-function tr(m){m=String(m||"");if(/Invalid login/i.test(m))return"Prénom, nom ou mot de passe incorrect.";if(/already registered|already been/i.test(m))return"Ce prénom et ce nom ont déjà un compte.";if(/Database error|invitation/i.test(m))return"Code d’invitation incorrect.";if(/at least|short|weak/i.test(m))return"Mot de passe trop court (6 caractères minimum).";if(/invalid/i.test(m)&&/email/i.test(m))return"Adresse interne refusée : voir le guide (changer DOM).";return m}
-function loginUI(done){
- var d=document.createElement("div");d.style.cssText="position:fixed;inset:0;z-index:100;background:#14110d;color:#fff;display:grid;place-items:center;font-family:system-ui,sans-serif;padding:20px;overflow:auto";
- var reg=false;
- function draw(msg){d.innerHTML='<div style="width:min(92vw,380px)"><h1 style="margin:0 0 4px;font-size:26px">🥖 Tournées de nuit</h1><p style="margin:0 0 16px;color:#aaa">'+(reg?"Créer mon compte":"Connexion")+'</p>'+
- '<input id="lf" placeholder="Prénom" autocomplete="given-name" style="width:100%;font-size:17px;padding:12px;margin:0 0 8px;border-radius:10px;border:1px solid #444;background:#221d17;color:#fff">'+
- '<input id="ln" placeholder="Nom" autocomplete="family-name" style="width:100%;font-size:17px;padding:12px;margin:0 0 8px;border-radius:10px;border:1px solid #444;background:#221d17;color:#fff">'+
- '<input id="lp" type="password" placeholder="Mot de passe" autocomplete="'+(reg?"new-password":"current-password")+'" style="width:100%;font-size:17px;padding:12px;margin:0 0 8px;border-radius:10px;border:1px solid #444;background:#221d17;color:#fff">'+
- (reg?'<input id="lc" placeholder="Code d’invitation (vide si tu es le tout premier)" style="width:100%;font-size:17px;padding:12px;margin:0 0 8px;border-radius:10px;border:1px solid #444;background:#221d17;color:#fff">':'')+
- '<div id="le" style="color:#ff8a7a;min-height:20px;margin:4px 0">'+(msg||"")+'</div>'+
- '<button id="lg" style="width:100%;font-size:18px;font-weight:700;padding:14px;border:0;border-radius:12px;background:#f0953f;color:#111">'+(reg?"Créer mon compte":"Se connecter")+'</button>'+
- '<button id="lt" style="width:100%;margin-top:10px;padding:12px;border:0;background:none;color:#f0953f;font-size:15px">'+(reg?"J’ai déjà un compte":"Créer mon compte")+'</button></div>';
- d.querySelector("#lt").onclick=function(){reg=!reg;draw()};
- d.querySelector("#lg").onclick=async function(){
-  var f=d.querySelector("#lf").value.trim(),l=d.querySelector("#ln").value.trim(),p=d.querySelector("#lp").value,c=reg?d.querySelector("#lc").value.trim():"";
-  if(!f||!l||!p){d.querySelector("#le").textContent="Remplis prénom, nom et mot de passe.";return}
-  var em=mail(f,l),r;d.querySelector("#lg").disabled=true;
-  try{
-   if(reg){r=await sb.auth.signUp({email:em,password:p,options:{data:{first_name:f,last_name:l,code:c}}});if(r.error)throw r.error;if(!r.data.session){r=await sb.auth.signInWithPassword({email:em,password:p});if(r.error)throw r.error}}
-   else{r=await sb.auth.signInWithPassword({email:em,password:p});if(r.error)throw r.error}
-   d.remove();done()
-  }catch(e){draw(tr(e.message))}};}
- draw();document.body.appendChild(d)}
-async function load(){var u=(await sb.auth.getUser()).data.user,p=(await sb.from("profiles").select("id,name,role").eq("id",u.id).maybeSingle()).data;me={id:u.id,name:p?p.name:"",role:p?p.role:"driver"}}
-function ensure(){if(!ready)ready=(async function(){var r=await sb.auth.getSession();if(!r.data.session)await new Promise(function(ok){loginUI(ok)});await load()})();return ready}
-function coll(list){return{docs:list.map(function(x){return{id:x.id,exists:true,data:function(){return x.data}}})}}
-function listen(fetch,cb,err){var tm=null,run=function(){clearTimeout(tm);tm=setTimeout(async function(){try{cb(await fetch())}catch(e){if(err)err(e)}},250)};run();
- var ch=sb.channel("c"+Math.random().toString(36).slice(2)).on("postgres_changes",{event:"*",schema:"public",table:"kv"},run).on("postgres_changes",{event:"*",schema:"public",table:"profiles"},run).subscribe();setInterval(run,30000);return function(){sb.removeChannel(ch)}}
-function docRef(path){var ref={
- get:async function(){
-  if(path==="config/editors"){var r=await sb.from("profiles").select("id").eq("role","editor");return{exists:true,id:"editors",data:function(){return{ids:(r.data||[]).map(function(x){return x.id})}}}}
-  var q=await sb.from("kv").select("data").eq("path",path).maybeSingle();return{exists:!!q.data,id:path.split("/").pop(),data:function(){return q.data?q.data.data:undefined}}},
- set:async function(v){
-  if(path==="config/editors"){var e1=await sb.rpc("set_editors",{ids:v.ids||[]});if(e1.error)throw e1.error;return}
-  if(path.indexOf("people/")===0)return;
-  var e=await sb.from("kv").upsert({path:path,data:v,updated_at:new Date().toISOString()},{onConflict:"path"});if(e.error)throw e.error},
- update:async function(p){var g=await ref.get();return ref.set(Object.assign({},g.exists?g.data():{},p))},
- delete:async function(){var e=await sb.from("kv").delete().eq("path",path);if(e.error)throw e.error},
- onSnapshot:function(cb,err){return listen(function(){return ref.get()},cb,err)}};return ref}
-function collRef(path){var lim=1000,ref={
- limit:function(n){lim=n;return ref},
- get:async function(){
-  if(path==="people"){var r=await sb.from("profiles").select("id,name");return coll((r.data||[]).map(function(x){return{id:x.id,data:{name:x.name}}}))}
-  var q=await sb.from("kv").select("path,data").like("path",path+"/%").limit(lim);if(q.error)throw q.error;
-  return coll((q.data||[]).filter(function(x){return x.path.slice(path.length+1).indexOf("/")<0}).map(function(x){return{id:x.path.split("/").pop(),data:x.data}}))},
- add:async function(v){var id=crypto.randomUUID();await docRef(path+"/"+id).set(v);return{id:id}},
- onSnapshot:function(cb,err){return listen(function(){return ref.get()},cb,err)}};return ref}
-var DB={doc:docRef,collection:collRef};
-var USER={me:async function(){return me},id:async function(){return me.id},isOwner:async function(){return me.role==="admin"},canEdit:async function(){return me.role!=="driver"},
- profiles:async function(ids){var r=await sb.from("profiles").select("id,name").in("id",ids),m={};(r.data||[]).forEach(function(x){m[x.id]={name:x.name}});return m}};
-var ASSETS={upload:async function(b){var n=crypto.randomUUID()+".jpg",r=await sb.storage.from("photos").upload(n,b,{contentType:"image/jpeg"});if(r.error)throw r.error;return{url:sb.storage.from("photos").getPublicUrl(n).data.publicUrl}}};
-window.claude={use:async function(n){await ensure();return n==="db"?DB:n==="user"?USER:n==="assets"?ASSETS:null},rpc:function(n,a){return sb.rpc(n,a)},signOut:function(){return sb.auth.signOut()}};
-function pwDlg(id){var d=document.createElement("div");d.id="cf";d.innerHTML='<div class="cfb"><p><b>🔑 Nouveau mot de passe</b></p><input class="in" id="npw" type="text" placeholder="Nouveau mot de passe (6 caractères minimum)" autocapitalize="off" autocorrect="off"><div class="btns" style="margin-top:12px"><button class="p" id="pwn" style="background:none;color:var(--text);border:2px solid var(--line)">Annuler</button><button class="p" id="pwy">Changer</button></div></div>';document.body.appendChild(d);
- d.querySelector("#pwn").onclick=function(){d.remove()};
- d.querySelector("#pwy").onclick=async function(){var p=d.querySelector("#npw").value;var r=await sb.rpc("admin_set_password",{uid:id,pw:p});d.remove();if(window.msg)msg(r.error?"Refusé : "+r.error.message:"Mot de passe changé. Donne-le à la personne.")}}
-document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-pw]");if(b){pwDlg(b.dataset.pw);return}var o=e.target.closest&&e.target.closest("[data-logout]");if(o){e.preventDefault();sb.auth.signOut().then(function(){location.reload()})}});
+var C=window.FB_CONFIG||{};if(!C.apiKey)return;
+var B="https://www.gstatic.com/firebasejs/10.12.2/",P=null;
+function load(u){return new Promise(function(r,j){var s=document.createElement("script");s.src=u;s.onload=r;s.onerror=j;document.head.appendChild(s)})}
+function init(){if(P)return P;
+ P=load(B+"firebase-app-compat.js").then(function(){return Promise.all([load(B+"firebase-auth-compat.js"),load(B+"firebase-firestore-compat.js")])}).then(function(){
+  firebase.initializeApp(C);var db=firebase.firestore();try{db.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}
+  var auth=firebase.auth();
+  return new Promise(function(res){var un=auth.onAuthStateChanged(function(u){un();fin(res,db,auth,u&&!u.isAnonymous?u:null)})})});
+ return P}
+function fin(res,db,auth,u){window.FBX.signed=!!u;window.FBX.need=!u;window.FBX.name=u?(u.displayName||""):"";res({db:db,auth:auth,u:u})}
+window.FBX={signed:false,name:"",
+ mail:function(n){return String(n).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,".").replace(/^\.+|\.+$/g,"")+"@tournees.app"},
+ hasAdmin:function(){return init().then(function(x){return x.db.doc("config/admin").get().then(function(sn){return sn.exists},function(){return true})})},
+ login:function(n,p,create,code){return init().then(function(x){var e=FBX.mail(n);if(!create)return x.auth.signInWithEmailAndPassword(e,p);
+  return x.db.doc("config/admin").get().then(function(sn){var first=!sn.exists;return x.auth.createUserWithEmailAndPassword(e,p).then(function(c){var u=c.user;return u.updateProfile({displayName:n}).then(function(){if(first)return;
+   return x.db.doc("members/"+u.uid).set({code:code||"",name:n,at:new Date().toISOString()}).catch(function(){var er=new Error("code");er.code="invite/bad";return u.delete().then(function(){throw er},function(){throw er})})})})})})},
+ logout:function(){return init().then(function(x){return x.auth.signOut()})}};
+var U={
+ me:function(){return init().then(function(x){return{id:x.u.uid,name:x.u.displayName||""}})},
+ isOwner:function(){return init().then(function(x){var u=x.u;if(u.isAnonymous)return false;var r=x.db.doc("config/admin");
+  return r.get().then(function(sn){if(sn.exists)return sn.data().uid===u.uid;
+   var at=new Date().toISOString(),cs="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",cd="",i;for(i=0;i<6;i++)cd+=cs.charAt(Math.floor(Math.random()*cs.length));return r.set({uid:u.uid,at:at}).then(function(){return x.db.doc("config/invite").set({code:cd}).catch(function(){}).then(function(){return x.db.doc("members/"+u.uid).set({code:cd,name:u.displayName||"",at:at}).catch(function(){})})}).then(function(){return true},function(){return false})}).catch(function(){return false})})},
+ profiles:function(ids){return init().then(function(x){var o={};return Promise.all(ids.map(function(id){return x.db.doc("people/"+id).get().then(function(sn){o[id]={name:(sn.exists&&sn.data().name)||""}},function(){o[id]={}})})).then(function(){return o})})}};
+var A={upload:function(b){return init().then(function(x){return new Promise(function(r,j){var fr=new FileReader();fr.onload=function(){var id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+ x.db.doc("photos/"+id).set({d:fr.result,at:new Date().toISOString()}).then(function(){window.PC["fs:"+id]=fr.result;r({url:"fs:"+id})},j)};fr.onerror=j;fr.readAsDataURL(b)})})}};
+window.claude={use:function(n){return init().then(function(x){if(!x||!x.u)return null;return n==="db"?x.db:n==="user"?U:n==="assets"?A:null})}};
 })();
 </script>
 <script>
@@ -178,7 +161,9 @@ stops:[
 ["ESAT Premilhat","5h45 à 5h50","hu01z3y2zw",46.310055,2.539151,"• Petit portillon sur la droite qui mène à une maison isolée<br>• Ouvrir la porte (clé 66) et déposer à côté du radiateur (tirer la porte pour tourner la clé)",[["Petit portillon sur la droite qui mène à une maison isolée", "esa1"], ["Ouvrir la porte (clé 66) et déposer à côté du radiateur (tirer la porte pour tourner la clé)", "esa2"]]],
 ["Foyer l’Églantine","5h50 à 5h55","hu01z3y3mk",46.309669,2.539752,"• Portail sur la droite<br>• Continuer tout droit jusqu’à l’entrée et déposer dans coffre en métal (flèche)",[["Portail sur la droite", "egl1"], ["Continuer tout droit jusqu’à l’entrée et déposer dans coffre en métal (flèche)", "egl2"]]],
 ["AFPA","6h00 à 6h05","hu01zg03ez",46.364343,2.595155,"• Portail sur la droite<br>• Continuer tout droit et tourner à droite au panneau livraison restaurant<br>• Donner au monsieur à l’intérieur du bâtiment (arrive vers 6h)",[["Portail sur la droite", "afp1"], ["Continuer tout droit et tourner à droite au panneau livraison restaurant", "afp2"], ["Donner au monsieur à l’intérieur du bâtiment (arrive vers 6h)", "afp3"]]]
-]}
+]},
+{"id":"tmwqp48r9","name":"Vichy","depart":"","desc":"","notes":[],"stops":[["Hôpital Billom","","hu04kh54mw",45.72057008743286,3.343212604522705,"",[["Ouvrir barrière (code: 7680A), tourner à gauche après être rentré en suivant le panneau cuisine ","/_blob/ddaba2f97f14e43f56c2ebf924a2bd23"],["Se diriger vers le bâtiment sur la droite ","/_blob/8b91225c0e3b3df4234512be6c46b32b"],["Ouvrir la porte (boîtier a code pour clé: 1207) et laisser la marchandise sur le chariot à l’intérieur ","/_blob/02fdfb75e0f4ed55456ea7b68fd544fd"]],"45.720570, 3.343213","Billom"],["Mon Repos","","hu04ksyy7z",45.82875967025757,3.3817076683044434,"",[["Garer vous devant le quai","/_blob/4cb5a4b73503a399bb8a0c15abb12519"],["Ouvrir la porte à droite avec la clé 52 et déposer les caisses à l’intérieur ","/_blob/5685d3f46dd89e1da2d05b79eb1b9070"]],"45.828760, 3.381708","Lezoux"],["L’Authentique","","",0,0,"",[["Ouvrir porte avec la cké avec le plastique bleu ","/_blob/04be0dd8551ce5f786865dd7cd22c8ca"],["Déposer à l’intérieur juste à l entrée ","/_blob/9ba68c0200c8c1d2c0a69cdf1b70ed12"]],"53 Rue Saint-Taurin, 63190 Lezoux","Lezoux"],["Le Belvédère","","",0,0,"",[["Déposer dans le caisson bleu ","/_blob/74e45d34dedd25ee9689a333a5d2fd2f"]],"15 Rue du Belvédère, 63300 Thiers","Thiers"],["Hôpital Thiers","","hu04sb5snr",45.855281352996826,3.521440029144287,"",[["Rentrer par le portail (déjà ouvert)","/_blob/5fcfc8521c53a81c46598985392c1b22"],["Continuer tout droit, passer devant le hall et continuer de monter jusqu’au panneau sur la droite (voir image) et tourner à droite et encore à droite","/_blob/498d22a4151d9847fee4d8629f3de598"],["Se garer au quai vers les caisses bleu ","/_blob/cca8f949b6a4262cdf07bf5de119208f"],["Ouvrer les caisses, mettre la marchandise et refermer ","/_blob/6eced3ffbcf653e59077a4ab3c40c2a7"]],"45.855281, 3.521440","Thiers"],["Résidence Bellerive","","hu04qmdbsj",46.11444711685181,3.406684398651123,"",[["Rentrer par le portail et sonner pour prévenir votre arriver ","/_blob/3fabb10ce29d34749d9a59c966fb2c52"],["Avancer jusqu’à la terrasse et la porte automatique sur la droite et appeler pour que quelqu’un récupère la marchandise ","/_blob/e35fee9cedef12f740f9b402cd8b0817"]],"46.114447, 3.406684","Bellerive-Sur-Allier"],["Première Classe","","hu04qms0u2",46.12135648727417,3.406813144683838,"",[["Ouvrir la porte sous l’escalier avec le code 28A04","/_blob/d30c1bb7a4346ef3add56c373f8e4491"],["Déposer à droite après être entré ","/_blob/5ace14f60c546d0410359c5b8ae23b36"]],"46.121356, 3.406813","Bellerive-Sur-Allier"],["Ibis Budget","","hu04qmkue3",46.12530469894409,3.40101957321167,"",[["Rentrer par l’entrée principale ","/_blob/067e1463902eb6ce8eb6b252df44c5d9"],["Donner au veilleur de nuit ou laisser le long de la fenêtre à l’intérieur ","/_blob/e9b007d0ba784bbc5f31b4d124605911"]],"46.125305, 3.401020","Bellerive-Sur-Allier"],["L’Hermitage","","hu04qmm2u9",46.12826585769653,3.395869731903076,"",[["Entrer par le portail (ouverture automatique)","/_blob/37bb94fcf31dd139883d5fe20ceea7f5"],["Suivre la flèche livraison et descendre derrière le bâtiment","/_blob/259ad0e467e61640979cdc1b25ef8797"],["Déposer les caisses sur le chariot à roulettes","/_blob/920a1c1b3a8ddf7686f9d693125ef7ef"]],"46.128266, 3.395870","Bellerive-Sur-Allier"],["Omnisports","","hu04qmx810",46.14002466201782,3.405783176422119,"",[["Rentrer dans le couloir","/_blob/2c471ddc8f9e31d90d05b47efec70a7f"],["Prendre la deuxième porte sur la gauche","/_blob/c5a2fde4828a1b5e85104d2ec04be31c"],["Poser sur la roulettes","/_blob/aaf6d943334fb85daa058ae3b52b0836"]],"46.140025, 3.405783","Bellerive-Sur-Allier"],["Pergola","","hu04qt9ky3",46.1505389213562,3.412349224090576,"",[["Se garer sous l’accueil et mettre le code (🔑11210🔑) pour entrer ","/_blob/3701e4504d4fffb4e8fcd29a1ef7595a"],["Aller à l’ascenseur au fond à droite (porte noir)","/_blob/89d80b0e222bc5a616556403bf817786"],["Monter au 5e étage et déposer la caisse sur la roulette en sortant de l’ascenseur ","/_blob/5d50f0db22fa0bf8d578590ce0ed890b"]],"46.150539, 3.412349","Vichy"],["Spar Vichy","","hu04qmvv6u",46.130712032318115,3.4241509437561035,"",[["Se garer devant est aller vers la porte à gauche du magasin ","/_blob/1c7cd5b20e804cc9033cc1905f2f6c2a"],["Ouvrer avec la clé 37 et déposer les sacs derrière la porte (attention à pas claquer en fermant)","/_blob/68ff4c8494d6d00b26e34f4bfd84ad75"]],"46.130712, 3.424151","Vichy"],["Hôtel Mercure","","hu04qmv06u",46.12659215927124,3.4172844886779785,"",[["Monter à la barrière et prendre un ticket pour ouvrir ","/_blob/16b6c96aae48083cc117508d2642be99"],["Rentrer dans le hall d’entrée","/_blob/d1e76ad995a9a9b2bc8bb1cf009d292a"],["Poser sur le chariot","/_blob/36631d474d9a14ceecd094c7fd219e58"]],"46.126592, 3.417284","Vichy"],["Ibis Bistrot","","hu04qmv63j",46.1276650428772,3.420073986053467,"",[["Se garer devant sur le trottoir et aller dans le hall d’entrée ","/_blob/dbe3f13dc4f5908bb34616b4718c93fb"],["Poser sur le chariot","/_blob/9279f074a86af3552bc98171c8bad835"]],"46.127665, 3.420074","Vichy"],["Rôtisserie","","hu04qmug8z",46.12487554550171,3.4218764305114746,"",[],"46.124876, 3.421876","Vichy"],["Villa Paisible","","hu04qmuh4u",46.12109899520874,3.4224343299865723,"",[["Ouvrir la porte avec le code 4125#","/_blob/8ae8f598e821c46ae0e4a534c9670535"],["Poser sur le chariot à roulette dans l’entrée ","/_blob/73363407941e87565c9c0433bdbd134b"]],"46.121099, 3.422434","Vichy"],["Vert Galant","","hu04qq5s67",46.118266582489014,3.4337210655212402,"",[["Ouvrir le portail avec le code 1357","/_blob/6a274ca8f746392a5c9d1b6d783d7fcc"],["Descendre sur la gauche et laisser les caisses jaune et bleu et les sac sur le chariot à roulette ","/_blob/467b67ec436f9dbf5dffea40541eaae2"]],"46.118267, 3.433721","Vichy"],["Paul Thomas","","hu04qqdrhy",46.11182928085327,3.459599018096924,"",[["Appeler le numéro pour l’ouverture (appeler 2-3min avant d’arriver pour éviter d attendre)","/_blob/f24d178ddfce48223586434d2538e3c5"],["Aller à l’entrée et donne la marchandise au personnel ","/_blob/ac8c3da421590b5e8338487a3fba0d82"]],"46.111829, 3.459599","Le Vernet","0470965800",""],["Annet Arloing","","hu04qqwqtp",46.13384485244751,3.4589552879333496,"",[["Tourner à droite avant la barrière ","/_blob/53a602a1db9b538e33b8b54574651efd"],["Aller jusqu’à la porte et taper le code 2021, laisser la marchandise à l’intérieur dans l’entrée","/_blob/0ae4fd2b135e046bd6b6cdb034cd6c61"]],"46.133845, 3.458955","Cusset"],["Coté cours","","hu04qqwmsq",46.133716106414795,3.4575390815734863,"",[["Se garer devant le portail (ouvrir portail si fermé) et aller à pied jusque sous le préau ","/_blob/d8df16baea349856e37dbd3d85a3fdd5"],["Déposer sur un des deux banc à côté de l’entrée ","/_blob/355efe4af6d2c174e26913055ca01f18"]],"46.133716, 3.457539","Cusset"],["Hôtel Dieu","","hu04qqw76e",46.13341569900513,3.4543204307556152,"",[["Rentrer sur le parking à gauche","/_blob/5a29177c5f4d69777037015b3b810b85"],["Déposer les caisses au bout du couloir le long à droite","/_blob/a2fcffb87ac8a473430832d954b09b1a"]],"46.133416, 3.454320","Cusset"],["Hôpital Vichy","","hu04qqhwwq",46.124446392059326,3.4369397163391113,"À livrer entre 6h et 6h30",[["Rentrer par la barrière en face ","/_blob/eeb18651045cde2b927d8c816f7ee56a"],["Tourner à gauche vers le service d’urgence ","/_blob/7950f1f06f7e2afc3ae04dee0bfded7b"],["Ensuite à droite","/_blob/065e789863fd6391a02571c08f76971a"],["Et encore à droite jusqu’au quai, mettre les caisse sur roulettes, les rentrer à l’intérieur et faire signer BL","/_blob/ee62e27b7fa9e9a4ba7bab0635c3d80c"]],"46.124446, 3.436940","Vichy"],["Ehpad Effiat","","hu04mfk8t6",46.03638410568237,3.263733386993408,"",[["Se garer devant le bâtiment et entrer à pied par le petit portail (interrupteur à gauche du portail)","/_blob/f343960a92ae2a9347d9084439db4eaa"],["Aller jusqu’à la porte automatique ","/_blob/cb2c69bcc5a85c0e455fdac59f540608"],["Déposer sur la roulette dans le hall","/_blob/18a9c73d9047a5ec981ac7b0980db5c5"]],"46.036384, 3.263733","Effiat"],["Viaduc","","hu04jrkdwy",45.9487509727478,3.1348156929016113,"",[["Aller à gauche après être rentré ","/_blob/b1ebe25b2a8745a643efde21920213e4"],["Tourner à soirée et aller jusqu’au fond","/_blob/e121641c88beb395c6f157b6114312df"],["Se garer vers la porte et ouvrir la porte avec la clé 57 (possible que la porte soit déjà ouverte)","/_blob/17643584c40b078e4211e0ac82b5e36a"],["Déposer sur la gauche derrière la porte ","/_blob/ac123ea205ffe3e41d6ddd3346cca880"]],"45.948751, 3.134816","Chambaron sur Morge"]],"order":1795282953813,"sub":"","cat":"weekend"},
+{"id":"tmwsvznpi","name":"Riom 3","depart":"","desc":"","notes":[],"stops":[["Albert Camus","","hu04hwdywh",45.80717325210571,3.1072640419006348,"",[["Sonner pour que quelqu’un vous ouvre le portail","/_blob/3a4a49add9cf76b5f6779c525a460d8e"],["Passer par la porte ouverte sur la photo","/_blob/988af3dc0c679819b03d3280066831b6"],["Laisser sur chariot ","/_blob/c8c57ccd0455ccb59e95544463e204a7"]],"45.807173, 3.107264","Clermont-Ferrand","",""],["Pizz’eco","","hu04hwu8gf",45.81640005111694,3.1102681159973145,"",[],"45.816400, 3.110268","Clermont-Ferrand","",""],["Michelin Ladoux","","hu04hz1dqm",45.844295024871826,3.123443126678467,"",[],"45.844295, 3.123443","Cébazat","",""],["Le Gordo","","hu04hxst11",45.81592798233032,3.1490206718444824,"",[["Monter pour rejoindre l’entrée du restaurant ","/_blob/5a7ae2e01bbcbe0c0d7d72a50529e3a6"],["Rentrer par la porte de droite","/_blob/c074cc2a9a037206ef18951a6e7b432e"],["Aller vers les cuisines à droite et laisser dans le petit panier sur la gauche à l’entrée des cuisines ","/_blob/57f59c8d09b9c3ebb7aa809d31c872a4"]],"45.815928, 3.149021","","",""]],"order":1795415429574,"cat":"semaine","next":"","sub":""}
 ];
 var KEY="tournees-v2",S={};
 function pad(n){return n<10?"0"+n:""+n}
@@ -207,12 +192,14 @@ function sync(t){
 }
 function mark(){var e=document.getElementById("syn");if(e)e.textContent=syncOk===false?"⚠️ Suivi non envoyé":"🟢 Suivi envoyé"}
 function X(x){return esc(unesc(String(x==null?"":x)))}
-function PT(s){var n=String(s[9]||"").trim(),d=n.replace(/[\s.\-]/g,""),t=X(/^\d{10}$/.test(d)?d.replace(/(\d{2})(?=\d)/g,"$1 "):n);if(window.top===window&&!s[10])return '<a href="tel:'+esc(/^0\d{9}$/.test(d)?"+33"+d.slice(1):d)+'" style="color:inherit;text-decoration:none">'+t+'</a>';return t}
+function PT(s){var n=String(s[9]||"").trim(),d=n.replace(/[\s.\-]/g,""),t=X(/^\d{10}$/.test(d)?d.replace(/(\d{2})(?=\d)/g,"$1 "):n),l=String(s[10]||"").trim(),st=' style="color:var(--accent);text-decoration:underline;font-weight:600;display:inline-block;padding:6px 0"';
+ if(l){if(!/^(https?:\/\/|tel:)/i.test(l))l="https://"+l;return '<a href="'+esc(l)+'"'+(/^tel:/i.test(l)?'':' target="_blank" rel="noopener"')+st+'>'+t+'</a>'}
+ return '<a href="tel:'+esc(/^0\d{9}$/.test(d)?"+33"+d.slice(1):d)+'"'+st+'>'+t+'</a>'}
 function PB(s){var n=String(s[9]||"").trim(),d=n.replace(/[\s.\-]/g,""),t=/^\d{10}$/.test(d)?d.replace(/(\d{2})(?=\d)/g,"$1 "):n,l=String(s[10]||"").trim();if(l){if(!/^(https?:\/\/|tel:)/i.test(l))l="https://"+l}else l="tel:"+(/^0\d{9}$/.test(d)?"+33"+d.slice(1):d);return '<a class="w" href="'+esc(l)+'"'+(window.top!==window||!/^tel:/.test(l)?' target="_blank" rel="noopener"':'')+'>📞 '+X(t)+'</a>'}
 function PH(s){var n=String(s[9]||"").trim(),d=n.replace(/[\s.\-]/g,""),t=/^\d{10}$/.test(d)?d.replace(/(\d{2})(?=\d)/g,"$1 "):n,l=String(s[10]||"").trim();
  if(l){if(!/^(https?:\/\/|tel:)/i.test(l))l="https://"+l;return '<a class="lnk" href="'+esc(l)+'" target="_blank" rel="noopener">'+X(t)+'</a>'}
  var tl=/^0\d{9}$/.test(d)?"+33"+d.slice(1):d;return '<span data-tel="'+esc(tl)+'" style="color:var(--accent);text-decoration:underline">'+X(t)+'</span>'}
-function LK(x){return X(x).replace(/\[([^\]]+)\]\(((?:https?:\/\/|tel:)[^\s)]+)\)|(https?:\/\/[^\s<]+)/g,function(m,t,u,b){return '<a class="lnk" href="'+(u||b)+'" target="_blank" rel="noopener">'+(t||"🔗 lien")+'</a>'})}
+function LK(x){return X(x).replace(/\[([^\]]+)\]\(((?:https?:\/\/|tel:)[^\s)]+)\)|(https?:\/\/[^\s<]+)|((?:\+33\s?|\b0)[1-9](?:[\s.\-]?\d{2}){4}\b)/g,function(m,t,u,b,p){if(p){var n=p.replace(/[\s.\-]/g,"");n=n.charAt(0)==="0"?"+33"+n.slice(1):n.replace(/^\+330?/,"+33");return '<a class="lnk" href="tel:'+n+'" style="word-break:normal;white-space:nowrap">'+p+'</a>'}var h=u||b;return '<a class="lnk" href="'+h+'"'+(/^tel:/i.test(h)?'':' target="_blank" rel="noopener"')+'>'+(t||"🔗 lien")+'</a>'})}
 var LKR=null;
 document.addEventListener("selectionchange",function(){var g=getSelection();if(!g||!g.rangeCount)return;var r=g.getRangeAt(0),n=r.commonAncestorContainer,el=n.nodeType===1?n:n.parentNode,ed=el&&el.closest&&el.closest(".rte");if(ed)LKR={r:r.cloneRange(),id:ed.id}});
 function ed2md(el){var o="";(function w(n){n.childNodes.forEach(function(c){if(c.nodeType===3)o+=c.nodeValue.replace(/\u00a0/g," ");else if(c.nodeName==="A"){var t=c.textContent.replace(/[\[\]]/g,""),h=c.getAttribute("href")||"";o+=h?"["+t+"]("+h+")":t}else if(c.nodeName==="BR")o+="\n";else{if(/^(DIV|P|LI)$/.test(c.nodeName)&&o&&!/\n$/.test(o))o+="\n";w(c)}})})(el);return o.replace(/\n+$/,"")}
@@ -236,7 +223,7 @@ async function boot(){
   if(window.claude){
    var d=await claude.use("db"),u=await claude.use("user");
    if(d&&u){
-    var me=await u.me();uid=me.id;db=d;owner=await u.isOwner();chief=owner;UNS=u;
+    var me=await u.me();uid=me.id;db=d;try{localStorage.setItem("fbok","1")}catch(x){}owner=await u.isOwner();chief=owner;UNS=u;
     if(me.name){S.pseudo=me.name;save()}
     asset=await claude.use("assets");
     if(uid){
@@ -245,15 +232,17 @@ async function boot(){
      S.hist=Object.assign({},e,S.hist||{});save();
      var pf=await db.doc("data/users/"+uid+"/prefs").get();if(pf.exists){var pv=pf.data();if(pv.fav)S.fav=pv.fav;if(pv.ord)S.ord=pv.ord;save()}
     }
-    if(uid)db.doc("people/"+uid).set({at:new Date().toISOString()}).catch(function(){});
+    if(uid)db.doc("people/"+uid).set({at:new Date().toISOString(),name:S.pseudo||""},{merge:true}).catch(function(){});
     db.doc("config/editors").onSnapshot(function(sn){EDS=(sn.exists&&sn.data().ids)||[];chief=owner||EDS.indexOf(uid)>=0;if(ready&&!E&&!ET)render()},function(){});
     db.collection("tours").onSnapshot(function(sn){var m={};BASE.forEach(function(t){m[t.id]=t});sn.docs.forEach(function(d){try{var t=JSON.parse(d.data().json);if(t.del)delete m[t.id];else m[t.id]=t}catch(x){}});TOURS=Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return (a.order||0)-(b.order||0)});if(ready&&!E&&!ET)render()},function(){});
    }
   }
  }catch(x){}
+ if(window.FBX&&FBX.need){ready=true;loginScreen();return}
+ if(window.FB_CONFIG&&FB_CONFIG.apiKey&&!db){var ok=0;try{ok=localStorage.getItem("fbok")==="1"}catch(x){}if(!ok){ready=true;loginScreen("Pas de connexion : réessaie quand tu as du réseau.");return}}
  ready=true;render();
 }
-boot();setTimeout(function(){if(!ready){ready=true;render()}},3000);
+boot();setTimeout(function(){if(!ready&&!(window.FB_CONFIG&&FB_CONFIG.apiKey)){ready=true;render()}},3000);
 /* Édition (éditeurs / propriétaire) */
 var lastAuto="",tsT=null,RP=null,GO=0,rtype="pb",etab="ch";
 function msg(t){var e=document.getElementById("ts");if(!e){e=document.createElement("div");e.id="ts";document.body.appendChild(e)}e.textContent=t;e.style.display="block";clearTimeout(tsT);tsT=setTimeout(function(){e.style.display="none"},4500)}
@@ -323,44 +312,65 @@ document.addEventListener("pointermove",function(e){var D=DG;if(!D||e.pointerId!
 document.addEventListener("pointerup",dgEnd);document.addEventListener("pointercancel",dgEnd);
 document.addEventListener("contextmenu",function(e){if(e.target.closest&&e.target.closest(".grip"))e.preventDefault()});
 function applyTQ(){var w=nz(TQ).split(/\s+/).filter(Boolean);document.querySelectorAll(".stop").forEach(function(c){c.style.display=w.every(function(k){return (c.dataset.q||"").indexOf(k)>=0})?"":"none"})}
-var RM={z:0,cx:0,cy:0,pd:null};
-function wpx(la,lo,z){var n=256*Math.pow(2,z),r=la*Math.PI/180;return[(lo+180)/360*n,(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n]}
+var RM={z:0,mx:.5,my:.5,P:{}},RG=null;
+function clp(v,a,b){return Math.max(a,Math.min(b,v))}
+function wn(la,lo){var r=la*Math.PI/180;return[(lo+180)/360,(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2]}
 function testNet(cb){if(MAP.testing)return;MAP.testing=1;var im=new Image(),done=false,fin=function(v){if(done)return;done=true;MAP.net=v;MAP.testing=0;cb()};im.onload=function(){fin(true)};im.onerror=function(){fin(false)};setTimeout(function(){fin(false)},5000);im.src="https://tile.openstreetmap.org/0/0/0.png"}
-function drawReal(t,P,pos,d,first,no){var el=document.getElementById("mapw"),W=el.clientWidth||340,H=320,z,x,y;
- var la=P.map(function(p){return p.la}),lo=P.map(function(p){return p.lo}),a1=Math.max.apply(0,la),a0=Math.min.apply(0,la),o1=Math.max.apply(0,lo),o0=Math.min.apply(0,lo);
- if(!RM.z){for(z=17;z>3;z--){var A=wpx(a1,o0,z),B=wpx(a0,o1,z);if(B[0]-A[0]<W-90&&B[1]-A[1]<H-90)break}var c=wpx((a1+a0)/2,(o1+o0)/2,z);RM.z=z;RM.cx=c[0];RM.cy=c[1]}
- z=RM.z;var n=Math.pow(2,z),ox=RM.cx-W/2,oy=RM.cy-H/2,tl="",mk="";
- for(x=Math.floor(ox/256)-1;x<=Math.floor((ox+W)/256)+1;x++)for(y=Math.floor(oy/256)-1;y<=Math.floor((oy+H)/256)+1;y++){if(y<0||y>=n)continue;tl+='<img src="https://tile.openstreetmap.org/'+z+'/'+(((x%n)+n)%n)+'/'+y+'.png" style="position:absolute;left:'+(x*256-ox)+'px;top:'+(y*256-oy)+'px;width:256px;height:256px;max-width:none" draggable="false" alt="">'}
- P.slice().sort(function(a,b){return (a.i===first)-(b.i===first)}).forEach(function(p){var w=wpx(p.la,p.lo,z);mk+='<div data-mp="'+p.i+'" style="position:absolute;left:'+(w[0]-ox-14)+'px;top:'+(w[1]-oy-14)+'px;width:28px;height:28px;border-radius:50%;background:'+(d[p.i+1]?"#2f8f4e":"#2a2118")+';color:#fff;border:3px solid '+(p.i===first?"#f0953f":"#fff")+';display:grid;place-items:center;font:700 12px sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.5)">'+pos[p.i]+'</div>'});
- var gl="https://www.google.com/maps/dir/"+P.slice().sort(function(a,b){return pos[a.i]-pos[b.i]}).slice(0,10).map(function(p){return p.la+","+p.lo}).join("/");
- el.innerHTML='<div class="btns" style="margin:0 0 8px"><button class="sm" data-rz="1">＋ Zoom</button><button class="sm" data-rz="-1">− Dézoom</button><button class="sm" data-rz="0">⟲ Recentrer</button></div><div class="rm" style="position:relative;height:'+H+'px;overflow:hidden;border-radius:14px;border:2px solid var(--line);touch-action:none;background:#ddd"><div id="rmi" style="position:absolute;left:0;top:0;width:100%;height:100%">'+tl+mk+'</div><div style="position:absolute;right:4px;bottom:2px;font-size:10px;background:rgba(255,255,255,.85);color:#000;padding:0 4px;border-radius:4px">© OpenStreetMap</div></div><div class="sub" style="margin:6px 0">Touche un numéro pour ouvrir le client dans Plans, Waze ou Maps. Glisse pour déplacer. Vert = fait.'+(no?' '+no+' client'+(no>1?'s':'')+' sans position GPS non affiché'+(no>1?'s':'')+'.':'')+'</div><div class="btns"><a class="w" href="'+gl+'" target="_blank" rel="noopener">🗺️ Voir ces clients sur Google Maps (10 premiers)</a></div>'}
-document.addEventListener("pointerdown",function(e){var m=e.target.closest&&e.target.closest("#mapw .rm");if(!m)return;RM.pd={x:e.clientX,y:e.clientY,id:e.pointerId,dx:0,dy:0};MAP.moved=false});
-document.addEventListener("pointermove",function(e){var q=RM.pd;if(!q||e.pointerId!==q.id)return;var dx=e.clientX-q.x,dy=e.clientY-q.y;if(!MAP.moved&&Math.abs(dx)+Math.abs(dy)<8)return;MAP.moved=true;q.dx=dx;q.dy=dy;var g=document.getElementById("rmi");if(g)g.style.transform="translate("+dx+"px,"+dy+"px)"});
-function rmEnd(){var q=RM.pd;RM.pd=null;if(q&&MAP.moved){RM.cx-=q.dx;RM.cy-=q.dy;var t=cur();if(t)drawMap(t);setTimeout(function(){MAP.moved=false},0)}}
-document.addEventListener("pointerup",rmEnd);document.addEventListener("pointercancel",rmEnd);
-function drawMap(t){var el=document.getElementById("mapw");if(!el)return;
- var V=vord(t),pos={},d=S.done[t.id]||{},P=[],first=-1;V.forEach(function(j,q){pos[j]=q+1;if(first<0&&!d[j+1])first=j});
- t.stops.forEach(function(s,i){if(s[3]&&s[4])P.push({i:i,s:s,la:s[3],lo:s[4]})});
- var no=t.stops.length-P.length;
- if(P.length){if(MAP.net===undefined){el.innerHTML='<div class="sub">Chargement de la carte…</div>';testNet(function(){drawMap(t)});return}if(MAP.net){drawReal(t,P,pos,d,first,no);return}}
- if(!P.length){el.innerHTML='<div class="sub">Aucun client n’a encore de position GPS. Colle un lien Waze, Maps ou Plans dans l’adresse du client pour le placer sur la carte.</div>';return}
- var la0=P.reduce(function(a,p){return a+p.la},0)/P.length,kx=Math.cos(la0*Math.PI/180);
- P.forEach(function(p){p.x=p.lo*kx;p.y=-p.la});
- var xs=P.map(function(p){return p.x}),ys=P.map(function(p){return p.y}),x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys),cx=(x0+x1)/2,cy=(y0+y1)/2,sc=Math.min(300/Math.max(x1-x0,.004),240/Math.max(y1-y0,.004)),z=MAP.z,kmpp=111.2/(sc*z),g="",i2;
- for(i2=1;i2<6;i2++)g+='<path d="M'+i2*60+' 0V300M0 '+i2*50+'H360" stroke="var(--line)" opacity=".5"/>';
- P.sort(function(a,b){return (a.i===first)-(b.i===first)}).forEach(function(p){var px=180+(p.x-cx)*sc*z+MAP.ox,py=150+(p.y-cy)*sc*z+MAP.oy,dn=d[p.i+1],f=dn?"var(--ok)":"var(--btn)",tf=dn?"#fff":"var(--btntext)";
-  g+='<g data-mp="'+p.i+'" style="cursor:pointer"><circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="'+(p.i===first?15:13)+'" fill="'+f+'" stroke="'+(p.i===first?"var(--accent)":"var(--bg)")+'" stroke-width="3"/><text x="'+px.toFixed(1)+'" y="'+(py+4).toFixed(1)+'" text-anchor="middle" font-size="12" font-weight="700" fill="'+tf+'">'+pos[p.i]+'</text>'+(z>=2?'<text x="'+(px+17).toFixed(1)+'" y="'+(py+4).toFixed(1)+'" font-size="10" fill="var(--text)">'+X(String(p.s[0]).slice(0,16))+'</text>':'')+'</g>'});
- var nice=[.1,.2,.5,1,2,5,10,20,50,100,200],bk=nice.filter(function(k){return k/kmpp>=50})[0]||200;
- var gl="https://www.google.com/maps/dir/"+P.slice().sort(function(a,b){return pos[a.i]-pos[b.i]}).slice(0,10).map(function(p){return p.la+","+p.lo}).join("/");
- el.innerHTML='<div class="btns" style="margin:0 0 8px"><button class="sm" data-mz="1.6">＋ Zoom</button><button class="sm" data-mz="0.625">− Dézoom</button><button class="sm" data-mz="0">⟲ Recentrer</button></div><svg viewBox="0 0 360 300" width="100%" style="touch-action:none;display:block;background:var(--card);border:2px solid var(--line);border-radius:14px"><g id="mg">'+g+'</g><path d="M12 288h'+(bk/kmpp).toFixed(1)+'" stroke="var(--text)" stroke-width="3"/><text x="12" y="278" font-size="11" fill="var(--text)">'+bk+' km</text><text x="340" y="22" font-size="13" fill="var(--text)" text-anchor="middle">N↑</text></svg><div class="sub" style="margin:6px 0">Touche un numéro pour ouvrir le client dans Plans, Waze ou Maps. Glisse pour déplacer, ± pour zoomer. Vert = fait. Pas de fond de carte (les images externes sont bloquées).'+(no?' '+no+' client'+(no>1?'s':'')+' sans position GPS non affiché'+(no>1?'s':'')+'.':'')+'</div><div class="btns"><a class="w" href="'+gl+'" target="_blank" rel="noopener">🗺️ Voir ces clients sur Google Maps (10 premiers)</a></div>'}
+function mapData(t){var V=vord(t),pos={},d=S.done[t.id]||{},P=[],first=-1;V.forEach(function(j,q){pos[j]=q+1;if(first<0&&!d[j+1])first=j});t.stops.forEach(function(s,i){if(s[3]&&s[4])P.push({i:i,s:s,la:s[3],lo:s[4]})});return{P:P,pos:pos,d:d,first:first,no:t.stops.length-P.length}}
+function rmFit(P,W,H){var a=P.map(function(p){return wn(p.la,p.lo)}),xs=a.map(function(w){return w[0]}),ys=a.map(function(w){return w[1]}),x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys),k=Math.min(Math.max(W-110,100)/Math.max((x1-x0)*256,1e-6),Math.max(H-110,100)/Math.max((y1-y0)*256,1e-6));RM.z=clp(Math.log(k)/Math.LN2,3,17);RM.mx=(x0+x1)/2;RM.my=(y0+y1)/2}
+function rmPaint(host){var t=cur(),L=host.querySelector(".rml");if(!t||!L)return;var D=mapData(t),W=host.clientWidth||340,H=host.clientHeight||320;if(!D.P.length)return;
+ if(!RM.z)rmFit(D.P,W,H);
+ var z=clp(RM.z,3,19),zt=Math.floor(z),s=Math.pow(2,z-zt),T=256*s,N=256*Math.pow(2,z),n=Math.pow(2,zt),ox=RM.mx*N-W/2,oy=RM.my*N-H/2,tl="",mk="",x,y;
+ if(MAP.net)for(x=Math.floor(ox/T)-1;x<=Math.floor((ox+W)/T)+1;x++)for(y=Math.floor(oy/T)-1;y<=Math.floor((oy+H)/T)+1;y++){if(y<0||y>=n)continue;tl+='<img src="https://tile.openstreetmap.org/'+zt+'/'+(((x%n)+n)%n)+'/'+y+'.png" style="position:absolute;left:'+(x*T-ox)+'px;top:'+(y*T-oy)+'px;width:'+(T+.5)+'px;height:'+(T+.5)+'px;max-width:none" draggable="false" alt="">'}
+ D.P.slice().sort(function(a,b){return (a.i===D.first)-(b.i===D.first)}).forEach(function(p){var w=wn(p.la,p.lo),px=w[0]*N-ox,py=w[1]*N-oy;if(px<-60||px>W+60||py<-30||py>H+30)return;var dn=D.d[p.i+1],f=p.i===D.first;
+  mk+='<div data-mp="'+p.i+'" style="position:absolute;left:'+(px-20)+'px;top:'+(py-20)+'px;width:40px;height:40px;display:grid;place-items:center;cursor:pointer"><div style="width:28px;height:28px;border-radius:50%;background:'+(dn?"#2f8f4e":"#2a2118")+';color:#fff;border:3px solid '+(f?"#f0953f":"#fff")+';display:grid;place-items:center;font:700 12px sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.5)">'+D.pos[p.i]+'</div></div>';
+  if(z>=15)mk+='<div style="position:absolute;left:'+(px+18)+'px;top:'+(py-8)+'px;font:600 11px sans-serif;color:#000;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;white-space:nowrap;pointer-events:none">'+X(String(p.s[0]).slice(0,22))+'</div>'});
+ if(MAP.userLocation){var uw=wn(MAP.userLocation.latitude,MAP.userLocation.longitude),ux=uw[0]*N-ox,uy=uw[1]*N-oy;if(ux>=-30&&ux<=W+30&&uy>=-30&&uy<=H+30)mk+='<div aria-label="Votre position actuelle" title="Votre position" style="position:absolute;left:'+(ux-10)+'px;top:'+(uy-10)+'px;width:20px;height:20px;border-radius:50%;background:#1687ff;border:3px solid #fff;box-shadow:0 0 0 3px rgba(22,135,255,.3);z-index:2"></div>'}
+ L.style.transform="";L.innerHTML=tl+mk;
+ var la=Math.atan(Math.sinh(Math.PI*(1-2*RM.my)))*180/Math.PI,mpp=156543.03*Math.cos(la*Math.PI/180)/Math.pow(2,z),nice=[10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000],bk=nice.filter(function(k){return k/mpp>=50})[0]||100000,sc=host.querySelector(".sc");
+ if(sc){sc.style.width=(bk/mpp)+"px";sc.textContent=bk>=1000?bk/1000+" km":bk+" m"}}
+function rmAll(){[].slice.call(document.querySelectorAll(".rm")).reverse().forEach(rmPaint)}
+function mapShell(fs){return '<div class="rm'+(fs?'':' inl')+'"><div class="rml"></div><div class="mcs"><button class="mc" data-mfs="'+(fs?0:1)+'" aria-label="'+(fs?'Fermer le plein écran':'Plein écran')+'">'+(fs?'✕':'⛶')+'</button><button class="mc" data-rz="1" aria-label="Zoom">＋</button><button class="mc" data-rz="-1" aria-label="Dézoom">−</button><button class="mc" data-rz="0" aria-label="Recentrer">⟲</button></div><div class="sc"></div>'+(MAP.net?'<div class="att">© OpenStreetMap</div>':'')+'</div>'}
+function mapFs(on){var o=document.getElementById("mfs");if(o)o.remove();document.documentElement.style.overflow="";RG=null;RM.P={};
+ if(on){var d=document.createElement("div");d.id="mfs";d.innerHTML=mapShell(true);document.body.appendChild(d);document.documentElement.style.overflow="hidden"}
+ rmAll()}
+function mapLocate(){if(!navigator.geolocation){msg("La géolocalisation n’est pas disponible sur cet appareil.");return}
+ msg("Recherche de votre position…");
+ navigator.geolocation.getCurrentPosition(function(pos){MAP.userLocation={latitude:pos.coords.latitude,longitude:pos.coords.longitude};var w=wn(pos.coords.latitude,pos.coords.longitude);RM.mx=w[0];RM.my=w[1];RM.z=15;rmAll();var ts=document.getElementById("ts");if(ts)ts.remove()},function(err){msg(err&&err.code===1?"Autorisez la localisation dans les réglages de votre appareil.":"Position introuvable. Vérifiez le GPS et réessayez.")},{enableHighAccuracy:true,timeout:12000,maximumAge:30000})}
+function drawMap(t){var el=document.getElementById("mapw");if(!el)return;var D=mapData(t);
+ if(!D.P.length){el.innerHTML='<div class="sub">Aucun client n’a encore de position GPS. Ajoutez une adresse ou des coordonnées GPS à un client pour le placer sur la carte.</div>';return}
+ if(MAP.net===undefined){el.innerHTML='<div class="sub">Chargement de la carte…</div>';testNet(function(){var c=cur();if(c)drawMap(c)});return}
+ var ordered=D.P.slice().sort(function(a,b){return D.pos[a.i]-D.pos[b.i]}),first=ordered[0],no=D.no;
+ var opts=ordered.map(function(p){return '<option value="'+p.i+'">'+X(p.s[0])+'</option>'}).join("");
+ var link="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(first.la+","+first.lo);
+ el.innerHTML=mapShell(false)+'<div class="sub" style="margin:6px 0">Touchez un numéro pour ouvrir la fiche du client. Déplacez la carte avec un doigt, pincez pour zoomer ou utilisez les boutons. Vert = livré. Le point bleu indique votre position.'+(MAP.net?'':' Fond de carte indisponible (hors ligne).')+(no?' '+no+' client'+(no>1?'s':'')+' sans position GPS non affiché'+(no>1?'s':'')+'.':'')+'</div><button class="edb" id="mapMe" style="margin:0 0 8px">📍 Afficher ma position actuelle</button><label for="mapClient" class="sub">Choisir un client à ouvrir dans Google Maps</label><select class="in" id="mapClient" style="margin:4px 0 8px">'+opts+'</select><div class="btns"><a class="w" id="mapClientOpen" href="'+link+'" target="_blank" rel="noopener">🗺️ Ouvrir le client sélectionné dans Google Maps</a></div>';
+ rmAll()}
+/* Gestes : glisser, pincer (2 doigts), molette */
+function rmPts(h){var r=h.getBoundingClientRect();return Object.keys(RM.P).map(function(k){return{x:RM.P[k].x-r.left,y:RM.P[k].y-r.top}})}
+function rmRebase(){var g=RG,a=rmPts(g.h);if(!a.length)return;g.s0=g.s;g.tx0=g.tx;g.ty0=g.ty;g.sg=1;if(a.length>1){g.cx=(a[0].x+a[1].x)/2;g.cy=(a[0].y+a[1].y)/2;g.d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1}else{g.cx=a[0].x;g.cy=a[0].y;g.d=0}g.nx=g.cx;g.ny=g.cy}
+function rmApply(){var g=RG,L=g.h.querySelector(".rml");if(!L)return;var s=clp(g.s0*g.sg,Math.pow(2,3-RM.z),Math.pow(2,19-RM.z)),k=s/g.s0;g.s=s;g.tx=g.nx+k*(g.tx0-g.cx);g.ty=g.ny+k*(g.ty0-g.cy);L.style.transform="translate("+g.tx+"px,"+g.ty+"px) scale("+s+")"}
+function rmCommit(){var g=RG;RG=null;if(!g)return;clearTimeout(g.tm);if(g.s===1&&!g.tx&&!g.ty)return;var W=g.h.clientWidth,H=g.h.clientHeight,N=256*Math.pow(2,RM.z),qx=(W/2-g.tx)/g.s,qy=(H/2-g.ty)/g.s;
+ RM.mx=(RM.mx*N+qx-W/2)/N;RM.my=clp((RM.my*N+qy-H/2)/N,0,1);RM.z=clp(RM.z+Math.log(g.s)/Math.LN2,3,19);rmAll()}
+document.addEventListener("pointerdown",function(e){var h=e.target.closest&&e.target.closest(".rm");if(!h||e.target.closest(".mc"))return;if(e.pointerType==="mouse"&&e.button)return;
+ if(RG&&(RG.h!==h||RG.wh))rmCommit();
+ if(!RG){RM.P={};MAP.moved=false;RG={h:h,s:1,tx:0,ty:0,s0:1,tx0:0,ty0:0,sg:1}}
+ RM.P[e.pointerId]={x:e.clientX,y:e.clientY};if(Object.keys(RM.P).length>1)MAP.moved=true;rmRebase()});
+document.addEventListener("pointermove",function(e){var g=RG,p=RM.P[e.pointerId];if(!g||!p||g.wh)return;p.x=e.clientX;p.y=e.clientY;var a=rmPts(g.h);
+ if(!MAP.moved&&Math.abs(a[0].x-g.cx)+Math.abs(a[0].y-g.cy)<8)return;MAP.moved=true;
+ if(a.length>1){g.nx=(a[0].x+a[1].x)/2;g.ny=(a[0].y+a[1].y)/2;g.sg=(Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1)/g.d}else{g.nx=a[0].x;g.ny=a[0].y;g.sg=1}
+ rmApply()});
+function rmUp(e){if(!RM.P[e.pointerId])return;delete RM.P[e.pointerId];if(!RG||RG.wh)return;if(Object.keys(RM.P).length)rmRebase();else{rmCommit();setTimeout(function(){MAP.moved=false},0)}}
+document.addEventListener("pointerup",rmUp);document.addEventListener("pointercancel",rmUp);
+document.addEventListener("wheel",function(e){var h=e.target.closest&&e.target.closest(".rm");if(!h||e.target.closest(".mc"))return;e.preventDefault();if(RG&&!RG.wh)return;
+ var r=h.getBoundingClientRect(),dy=e.deltaMode===1?e.deltaY*16:e.deltaY,f=Math.exp(-dy*(e.ctrlKey?.01:.0015));
+ if(!RG||RG.h!==h){var cx=e.clientX-r.left,cy=e.clientY-r.top;RG={h:h,wh:1,s:1,tx:0,ty:0,s0:1,tx0:0,ty0:0,sg:1,cx:cx,cy:cy,nx:cx,ny:cy}}
+ RG.sg*=f;rmApply();clearTimeout(RG.tm);RG.tm=setTimeout(rmCommit,140)},{passive:false});
+window.addEventListener("resize",function(){if(!RG)rmAll()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&document.getElementById("mfs"))mapFs(false)});
 function mapSheet(i){var t=cur();if(!t)return;var s=t.stops[i],d=document.createElement("div");d.id="cf";
  d.innerHTML='<div class="cfb"><p><b>'+X(s[0])+'</b>'+(s[8]?'<br><span class="sub">📍 '+X(s[8])+'</span>':'')+'</p><div class="btns">'+nav(s)+'</div><div class="btns" style="margin-top:8px"><button class="p" id="mgo" style="background:none;color:var(--text);border:2px solid var(--line)">Voir la fiche</button><button class="p" id="mxx" style="background:none;color:var(--text);border:2px solid var(--line)">Fermer</button></div></div>';document.body.appendChild(d);
  d.querySelector("#mxx").onclick=function(){d.remove()};
- d.querySelector("#mgo").onclick=function(){d.remove();var c=document.getElementById("s"+(i+1));if(c){c.style.display="";c.scrollIntoView({block:"start"})}}}
-document.addEventListener("pointerdown",function(e){var sv=e.target.closest&&e.target.closest("#mapw svg");if(!sv)return;MAP.pd={x:e.clientX,y:e.clientY,id:e.pointerId,dx:0,dy:0};MAP.moved=false});
-document.addEventListener("pointermove",function(e){var q=MAP.pd;if(!q||e.pointerId!==q.id)return;var dx=e.clientX-q.x,dy=e.clientY-q.y;if(!MAP.moved&&Math.abs(dx)+Math.abs(dy)<8)return;MAP.moved=true;var sv=document.querySelector("#mapw svg"),k=sv?360/sv.getBoundingClientRect().width:1;q.dx=dx*k;q.dy=dy*k;var g=document.getElementById("mg");if(g)g.setAttribute("transform","translate("+q.dx+","+q.dy+")")});
-function mapEnd(){var q=MAP.pd;MAP.pd=null;if(q&&MAP.moved){MAP.ox+=q.dx;MAP.oy+=q.dy;var t=cur();if(t)drawMap(t);setTimeout(function(){MAP.moved=false},0)}}
-document.addEventListener("pointerup",mapEnd);document.addEventListener("pointercancel",mapEnd);
+ d.querySelector("#mgo").onclick=function(){d.remove();mapFs(false);var c=document.getElementById("s"+(i+1));if(c){c.style.display="";c.scrollIntoView({block:"start"})}}}
 function saveTour(t){if(!db)return Promise.reject();return db.doc("tours/"+t.id).set({json:JSON.stringify(t),by:uid||"",at:new Date().toISOString()}).catch(function(){msg("Enregistrement refusé.")})}
 function saveContent(){return saveTour(E.t)}
 function toggleEd(id){var i=EDS.indexOf(id);if(i<0)EDS.push(id);else EDS.splice(i,1);db.doc("config/editors").set({ids:EDS}).then(render,function(){msg("Refusé.")})}
@@ -393,7 +403,7 @@ function drawEd(){
  o+='<label>Téléphone du client, puis lien à ouvrir en touchant le numéro (facultatifs)</label><div style="display:flex;gap:8px"><input class="in" id="e9" type="tel" style="flex:1;min-width:0" value="'+esc(s[9]||"")+'" placeholder="Numéro"><input class="in" id="e10" style="flex:1;min-width:0" value="'+esc(s[10]||"")+'" placeholder="Lien (https://…)" autocapitalize="off" autocorrect="off"></div>';
  o+='<label>Facultatif : latitude, longitude, code Waze</label><input class="in" id="e3" value="'+(s[3]||"")+'"><input class="in" id="e4" value="'+(s[4]||"")+'"><input class="in" id="e2" value="'+esc(s[2]||"")+'">';
  o+='<label>Consignes</label><div><button type="button" class="sm" data-lk="e5">🔗 Lien</button> <span class="sub">sélectionne un mot, puis touche Lien</span></div><div class="rte" id="e5" contenteditable="true">'+String(s[5]||"").split("<br>").map(LK).join("<br>")+'</div><label>Photos</label>';
- s[6].forEach(function(p,j){o+='<div class="ph"><img src="'+esc(IMG[p[1]]||p[1])+'" alt=""><input data-cap="'+j+'" value="'+esc(p[0])+'" placeholder="Légende"><button data-mv="'+j+'">↑</button><button data-rm="'+j+'">✕</button></div>'});
+ s[6].forEach(function(p,j){o+='<div class="ph"><img data-fs="'+esc(p[1])+'" src="'+esc(PIMG(p[1]))+'" alt=""><input data-cap="'+j+'" value="'+esc(p[0])+'" placeholder="Légende"><button data-mv="'+j+'">↑</button><button data-rm="'+j+'">✕</button></div>'});
  o+='<input type="file" accept="image/*" id="efile" style="display:none"><button class="edb" id="eadd">📷 Ajouter une photo</button>';
  o+='<div class="btns" style="margin-top:18px"><button class="p" id="esave">Enregistrer</button><button class="p" id="ecancel" style="background:none;color:var(--text);border:2px solid var(--line)">Annuler</button></div>';
  if(E.i>=0)o+='<div class="btns"><button class="sm" id="edel" style="color:#c0392b">Supprimer</button></div>';
@@ -428,14 +438,14 @@ function render(){
  if(id==="histo"){
   hd.innerHTML='<a class="back" href="#">← Toutes les tournées</a><h1>📅 Mon historique</h1><div class="sub">Tes tournées des derniers jours</div>';
   var o="",last="";Object.keys(S.hist||{}).map(function(k){return S.hist[k]}).sort(function(a,b){return (b.date+(b.startedAt||"")).localeCompare(a.date+(a.startedAt||""))}).forEach(function(r){if(r.date!==last){last=r.date;o+='<div class="day">'+esc(r.date)+'</div>'}o+=row(r)});
-  app.innerHTML=o||'<div class="sub">Aucune tournée enregistrée.</div>';return}
+  app.innerHTML=o||'<div class="sub">Aucune tournée enregistrée pour le moment.</div>';return}
  if(id==="equipe"&&owner){
   hd.innerHTML='<a class="back" href="#">← Toutes les tournées</a><h1>👥 Équipe et accès</h1><div class="sub">Réservé à l’admin (toi)</div>';
   app.innerHTML='<div class="sub">Chargement…</div>';
-  db.collection("people").get().then(function(sn){var ids=sn.docs.map(function(x){return x.id});return UNS.profiles(ids).then(function(ps){
-   var o='<div class="notes"><b>Comment ça marche</b><ul><li><b>Chauffeur</b> : utilise les tournées et enregistre les siennes.</li><li><b>Éditeur</b> : peut en plus créer et modifier tournées, arrêts, adresses, consignes et photos.</li></ul><div class="sub" style="margin-top:6px">Pour autoriser quelqu’un à ouvrir l’appli : bouton Partager de cette page dans Claude, son adresse mail Claude, rôle Contributeur. Il apparaît ensuite ici dans Chauffeurs dès sa première ouverture, et tu peux le passer en Éditeur.</div></div>';
-   o+='<div class="seg"><button data-et="ch"'+(etab==="ch"?' class="on"':'')+'>Chauffeurs</button><button data-et="ed"'+(etab==="ed"?' class="on"':'')+'>Éditeurs</button></div>';var any=0;ids.forEach(function(id){var p=ps[id]||{},ed=EDS.indexOf(id)>=0,me=id===uid;if(me||ed!==(etab==="ed"))return;any=1;o+='<div class="row"><b>'+X(p.name||"Personne (nom indisponible)")+'</b><br><button class="sm" data-tg="'+id+'">'+(ed?'Retirer des éditeurs (redevient chauffeur)':'Rendre éditeur')+'</button> <button class="sm" data-pw="'+id+'">🔑 Mot de passe</button></div>'});if(!any)o+='<div class="sub">Personne pour l’instant.</div>';
-   app.innerHTML=o})}).catch(function(){app.innerHTML='<div class="sub">Impossible de lire.</div>'});return}
+  Promise.all([db.collection("people").get(),db.collection("members").get(),db.doc("config/invite").get()]).then(function(R){var sn=R[0],MB={},INV=(R[2].exists&&R[2].data().code)||"";R[1].docs.forEach(function(d){MB[d.id]=d.data().name||""});var ids=sn.docs.map(function(x){return x.id});return UNS.profiles(ids).then(function(ps){
+   var o='<div class="notes"><b>Comment ça marche</b><ul><li><b>Chauffeur</b> : utilise les tournées et enregistre les siennes.</li><li><b>Éditeur</b> : peut en plus créer et modifier tournées, arrêts, adresses, consignes et photos.</li></ul><div class="sub" style="margin-top:6px">Pour inviter quelqu’un : envoie-lui le lien de l’appli et le code d’invitation. Pour la passer en Éditeur, appuie sur « Rendre éditeur ». Chaque personne crée son compte (nom, prénom, mot de passe) avec le code d’invitation ci-dessous. Elle est chauffeur par défaut et apparaît ici.</div></div>';
+   o+='<div class="row"><b>🔐 Code d’invitation</b><br><span style="font-size:22px;letter-spacing:3px;font-weight:700">'+X(INV||"(aucun)")+'</span><br><button class="sm" id="invnew">Générer un nouveau code</button><div class="sub">À donner aux personnes qui doivent créer un compte (nom, prénom, mot de passe). Les comptes déjà créés ne sont pas touchés.</div></div>';o+='<div class="seg"><button data-et="ch"'+(etab==="ch"?' class="on"':'')+'>Chauffeurs</button><button data-et="ed"'+(etab==="ed"?' class="on"':'')+'>Éditeurs</button></div>';var any=0;ids.forEach(function(id){var p=ps[id]||{},ed=EDS.indexOf(id)>=0,me=id===uid;if(me||ed!==(etab==="ed"))return;any=1;var isM=MB[id]!==undefined;o+='<div class="row"><b>'+X(p.name||MB[id]||"Personne (nom indisponible)")+'</b>'+(isM?'':' <span class="sub">(sans compte)</span>')+'<br>'+((isM||ed)?'<button class="sm" data-tg="'+id+'">'+(ed?'Retirer des éditeurs (redevient chauffeur)':'Rendre éditeur')+'</button>':'<span class="sub">Doit d’abord créer un compte.</span>')+(isM?' <button class="sm" data-adm="'+id+'">👑 Nommer admin à ma place</button>':'')+'</div>'});if(!any)o+='<div class="sub">Personne pour l’instant.</div>';
+   app.innerHTML=o})}).catch(function(){app.innerHTML='<div class="sub">Impossible de charger les informations.</div>'});return}
  if(id==="reclam"){
   hd.innerHTML='<a class="back" href="#">← Accueil</a><h1>📨 Réclamations et idées</h1><div class="sub">Prévenir l’admin : un client a changé, un souci, une idée…</div>';
   h='<div class="seg"><button data-rt="pb"'+(rtype==="pb"?' class="on"':'')+'>🐞 Problème</button><button data-rt="id"'+(rtype==="id"?' class="on"':'')+'>💡 Idée</button><button data-rt="mod"'+(rtype==="mod"?' class="on"':'')+'>✏️ Client</button></div>';
@@ -446,7 +456,7 @@ function render(){
   var TL={pb:"🐞 Problème",id:"💡 Idée",mod:"✏️ Modification client"};
   if(db)db.collection("reports").get().then(function(sn){var rs=sn.docs.map(function(x){var v=x.data();v.id=x.id;return v}).filter(function(v){return chief||v.by===uid}).sort(function(a,b){return (b.at||"").localeCompare(a.at||"")}),o="";
    rs.forEach(function(v){var dn=v.st==="done";o+='<div class="row"'+(dn?' style="opacity:.6"':'')+'><b>'+X(TL[v.type]||"Message")+'</b> · '+X(v.pseudo)+' · '+X((v.at||"").slice(0,10))+' · '+(dn?"✅ Traité":"⏳ En attente")+(v.stop?'<br>Client : <b>'+X(v.stop)+'</b> ('+X(v.tour)+')':'')+'<br>'+X(v.text)+(chief?'<br><button class="sm" data-rd="'+v.id+'" data-st="'+(dn?"new":"done")+'">'+(dn?"↩︎ Rouvrir":"✅ Marquer traité")+'</button> <button class="sm" data-rm2="'+v.id+'" style="color:#c0392b">Supprimer</button>':'')+'</div>'});
-   document.getElementById("rl").innerHTML=o||"Rien pour l’instant."},function(){document.getElementById("rl").textContent="Impossible de lire."});
+   document.getElementById("rl").innerHTML=o||"Rien pour l’instant."},function(){document.getElementById("rl").textContent="Impossible de charger les informations."});
   return}
  if(id==="suivi"&&chief){
   hd.innerHTML='<a class="back" href="#">← Toutes les tournées</a><h1>🔒 Suivi des tournées</h1><div class="sub">Visible uniquement par les chefs</div>';
@@ -462,7 +472,7 @@ function render(){
   },function(){app.innerHTML='<div class="sub">Impossible de lire le suivi.</div>'});
   return}
  if(!t){
-  hd.innerHTML='<h1>🥖 Tournées de nuit</h1><div class="sub">Choisis ta tournée · remise à zéro chaque jour à 0h00</div>'+who();
+  hd.innerHTML='<h1>🥖 Tournées de nuit</h1><div class="sub">Choisissez votre tournée · remise à zéro chaque jour à 0 h 00</div>'+who();
   var cat=S.cat||(new Date().getDay()%6===0?"weekend":"semaine"),fv=S.fav||{};
   var card=function(x,b){var c=cnt(x),n=x.stops.length,hr="";if(n){var f=String(x.stops[0][1]).split(" à "),l=String(x.stops[n-1][1]).split(" à ");hr=' · '+X(f[0])+' → '+X(l[l.length-1])}
    return '<div class="tw"><a class="tour" href="#'+x.id+'"><b>'+X(x.name)+'</b><div class="sub">'+X(x.sub||"")+'</div><div class="meta">'+(b?((x.cat||"weekend")==="semaine"?"Semaine · ":"Week-end · "):"")+n+' arrêt'+(n>1?'s':'')+hr+' · '+(!n?"vide":c===n?"terminée ✓":c?c+" / "+n+" faits":"pas commencée")+'</div></a><button class="star" data-fav="'+x.id+'" aria-label="Favori">'+(fv[x.id]?"★":"☆")+'</button></div>'};
@@ -477,7 +487,7 @@ function render(){
   h+='<a class="chief" href="#reclam">'+(chief?'📨 Réclamations des chauffeurs':'📨 Signaler un problème ou proposer une idée')+'</a>';
   if(chief)h+='<a class="chief" href="#suivi">🔒 Voir le suivi des tournées</a>';
   if(owner)h+='<a class="chief" href="#equipe">👥 Équipe et accès (propriétaire)</a>';
-  h+='<a class="chief" href="#histo">📅 Mon historique</a><a class="chief" href="#" data-logout="1">🚪 Se déconnecter</a></div>';
+  h+='<a class="chief" href="#histo">📅 Mon historique</a>'+fbLink()+'</div>';
   app.innerHTML=h;return}
  if(!S.logs[t.id]){S.logs[t.id]={startedAt:new Date().toISOString(),stops:{}};save();sync(t)}
  var d=S.done[t.id]||{},c=cnt(t),n=t.stops.length,first=-1;
@@ -496,11 +506,35 @@ function render(){
   h+='</div>'+(chief?'':'<button class="edb" data-rp="'+i+'" style="margin-right:8px">⚠️ Signaler un souci ou un changement</button>')+(chief?'<button class="edb" data-ed="'+i+'">✏️ Modifier cet arrêt</button>':'')+'</div>'});
  if(chief)h+='<button class="edb" data-ed="new">＋ Ajouter un arrêt</button>';
  h+='<button class="reset" id="reset">Recommencer la tournée</button>';
- app.innerHTML=h;if(MAP.open)drawMap(t);applyTQ();
+ app.innerHTML=h;updSP();if(MAP.open)drawMap(t);applyTQ();
  if(GO){var g2=GO;GO=0;setTimeout(function(){var el=document.getElementById("s"+(g2+1));if(el)el.scrollIntoView({block:"start"})},150)}
 }
+var PC=window.PC=window.PC||{};
+function PIMG(k){if(IMG[k])return IMG[k];if(k&&k.indexOf("fs:")===0){if(PC[k])return PC[k];fsLoad(k);return "data:image/gif;base64,R0lGODlhAQABAAAAACw="}return k}
+function fsLoad(k){if(PC["_"+k]||!db)return;PC["_"+k]=1;db.doc("photos/"+k.slice(3)).get().then(function(sn){if(sn.exists){PC[k]=sn.data().d;[].forEach.call(document.querySelectorAll('img[data-fs="'+k+'"]'),function(i){i.src=PC[k];i.style.display=""})}},function(){PC["_"+k]=0})}
+function fbLink(){if(!window.FBX||!db)return "";return FBX.signed?'<a class="chief" id="fbout" role="button">🔓 Se déconnecter ('+X(FBX.name)+')</a>':''}
+function fbDlg(forced){var d=document.createElement("div");d.id="cf";d.innerHTML='<div class="cfb"><p><b>🔑 Connexion</b></p><div class="sub" id="fbintro">Choisissez une option pour continuer.</div><div class="btns" id="fbchoices" style="margin-top:12px"><button class="p" id="fbcreate">Créer un compte</button><button class="p" id="fblogin" style="background:none;color:var(--text);border:2px solid var(--line)">Se connecter</button></div><div id="fbform" style="display:none"><div class="sub" id="fbmode" style="margin:10px 0"></div><input class="in" id="fbm" placeholder="Nom et prénom" autocomplete="username" style="margin:8px 0"><input class="in" id="fbp" type="password" placeholder="Mot de passe (6 caractères minimum)" autocomplete="current-password"><input class="in" id="fbi" placeholder="Code d’invitation" autocapitalize="characters" autocomplete="off" style="margin-top:8px;display:none"><div class="sub" id="fbe" style="color:#e0675a;margin-top:6px"></div><div class="btns" style="margin-top:8px"><button class="p" id="fbback" style="background:none;color:var(--text);border:2px solid var(--line)">Retour</button><button class="p" id="fbsubmit">Continuer</button></div></div><div class="btns" style="margin-top:8px"><button class="p" id="fbx" style="background:none;color:var(--text);border:2px solid var(--line)">Annuler</button></div></div>';document.body.appendChild(d);
+ function q(i){return d.querySelector(i)}
+ var mode="";
+ function choose(cr){mode=cr?"create":"login";q("#fbchoices").style.display="none";q("#fbform").style.display="block";q("#fbintro").textContent=cr?"Créez votre compte avec les informations ci-dessous.":"Entrez les identifiants de votre compte.";q("#fbmode").textContent=cr?"Création de compte · Un code d’invitation peut être nécessaire.":"Connexion à votre compte";q("#fbsubmit").textContent=cr?"Créer mon compte":"Se connecter";q("#fbi").style.display="none";q("#fbe").textContent="";q("#fbp").value="";if(cr)q("#fbm").focus()}
+ function go(){var cr=mode==="create",nm=q("#fbm").value.trim().replace(/\s+/g," "),pw=q("#fbp").value,er=q("#fbe");if(nm.length<2||FBX.mail(nm)==="@tournees.app"||pw.length<6){er.textContent="Entrez votre nom et prénom ainsi qu’un mot de passe de 6 caractères minimum.";return}
+  function run(code){er.textContent="Connexion…";q("#fbsubmit").disabled=true;FBX.login(nm,pw,cr,code).then(function(){location.reload()},function(x){q("#fbsubmit").disabled=false;var c=(x&&x.code)||"";er.textContent=c==="invite/bad"?"Code d’invitation incorrect.":c.indexOf("already")>=0?"Ce nom a déjà un compte : choisissez « Se connecter ».":(c.indexOf("credential")>=0||c.indexOf("password")>=0||c.indexOf("not-found")>=0)&&c.indexOf("weak")<0?"Nom ou mot de passe incorrect.":c.indexOf("weak")>=0?"Mot de passe trop faible.":"Connexion impossible ("+c+")."})}
+  if(!cr){run("");return}
+  FBX.hasAdmin().then(function(h){if(!h){run("");return}var ci=q("#fbi");ci.style.display="";var cd=ci.value.trim().toUpperCase();if(!cd){er.textContent="Entrez le code d’invitation fourni par l’administrateur.";ci.focus();return}run(cd)},function(){er.textContent="Impossible de vérifier le code d’invitation. Réessayez."})}
+ if(forced)q("#fbx").style.display="none";q("#fbx").onclick=function(){d.remove()};q("#fbcreate").onclick=function(){choose(true)};q("#fblogin").onclick=function(){choose(false)};q("#fbback").onclick=function(){q("#fbform").style.display="none";q("#fbchoices").style.display="flex";q("#fbe").textContent="";mode=""};q("#fbsubmit").onclick=go;
+ q("#fbp").addEventListener("keydown",function(e){if(e.key==="Enter")go()});q("#fbm").addEventListener("keydown",function(e){if(e.key==="Enter")q("#fbp").focus()})}
+document.addEventListener("change",function(e){if(e.target&&e.target.id==="mapClient"){var t=cur(),i=+e.target.value,s=t&&t.stops[i],a=document.getElementById("mapClientOpen");if(s&&a){a.href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(s[3]+","+s[4]);a.textContent="🗺️ Ouvrir "+s[0]+" dans Google Maps"}}});
+document.addEventListener("click",function(e){var t=e.target;if(!t||!t.closest)return;
+ if(t.closest("#fbin")){fbDlg();return}
+ if(t.closest("#fbout")){FBX.logout().then(function(){location.reload()});return}
+ if(t.closest("#invnew")){var cs="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",cd="",i;for(i=0;i<6;i++)cd+=cs.charAt(Math.floor(Math.random()*cs.length));db.doc("config/invite").set({code:cd}).then(function(){render()},function(){msg("Impossible de changer le code.")});return}
+ var ad=t.closest("[data-adm]");if(ad&&owner){var id=ad.dataset.adm,nm=(ad.closest(".row").querySelector("b")||{}).textContent||"cette personne";askConfirm("Nommer "+nm+" admin à ta place ? Tu perdras tes droits d’admin (elle pourra te remettre éditeur).","Confirmer",function(){db.doc("config/admin").set({uid:id,at:new Date().toISOString()}).then(function(){location.hash="";location.reload()},function(){msg("Impossible : cette personne doit avoir un compte.")})});return}
+});
+function loginScreen(msg){hd.innerHTML='<h1>🔑 Connexion</h1><div class="sub">Entre ton nom, prénom et ton mot de passe.</div>';app.innerHTML=msg?'<div class="sub">'+X(msg)+'</div><div class="btns"><button class="p" onclick="location.reload()">Réessayer</button></div>':'';if(!msg)fbDlg(true)}
+function updSP(){var h=document.getElementById("hd");if(h)document.documentElement.style.scrollPaddingTop=(h.getBoundingClientRect().bottom+12)+"px"}
+window.addEventListener("resize",updSP);
 function cur(){return TOURS.find(function(x){return x.id===location.hash.slice(1)})}
-function setPseudo(v){v=(v||"").trim().slice(0,30);if(!v)return;S.pseudo=v;save();render();
+function setPseudo(v){v=(v||"").trim().slice(0,30);if(!v)return;S.pseudo=v;save();if(db&&uid)db.doc("people/"+uid).set({name:v},{merge:true}).catch(function(){});render();
  TOURS.forEach(function(t){if(S.logs[t.id])sync(t)})}
 document.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.id==="ps")setPseudo(e.target.value)});
 document.addEventListener("click",function(e){
@@ -514,7 +548,7 @@ document.addEventListener("click",function(e){
   if(S.done[t.id][k]){delete S.done[t.id][k];delete l.stops[k]}else{S.done[t.id][k]=1;l.stops[k]=new Date().toISOString()}
   l.lastAt=new Date().toISOString();save();sync(t);var y=window.scrollY;render();
   var nx=0,V2=vord(t);for(var i=0;i<V2.length;i++){if(!S.done[t.id][V2[i]+1]){nx=V2[i]+1;break}}
-  if(S.done[t.id][k]&&nx)document.getElementById("s"+nx).scrollIntoView({behavior:"smooth",block:"start"});else window.scrollTo(0,y);if(S.done[t.id][k]&&!nx)endTour(t);return}
+  if(S.done[t.id][k]&&nx)(updSP(),document.getElementById("s"+nx).scrollIntoView({behavior:"smooth",block:"start"}));else window.scrollTo(0,y);if(S.done[t.id][k]&&!nx)endTour(t);return}
  var ct=e.target.closest("[data-cat]");if(ct){S.cat=ct.dataset.cat;save();render();return}
  var fb=e.target.closest("[data-fav]");if(fb){S.fav=S.fav||{};var fid=fb.dataset.fav;if(S.fav[fid])delete S.fav[fid];else S.fav[fid]=1;favSave();render();return}
  var go=e.target.closest("[data-go]");if(go)GO=+go.dataset.go;
@@ -525,9 +559,10 @@ document.addEventListener("click",function(e){
  var rd=e.target.closest("[data-rd]");if(rd){db.doc("reports/"+rd.dataset.rd).update({st:rd.dataset.st}).then(render,function(){msg("Refusé.")});return}
  var rm=e.target.closest("[data-rm2]");if(rm){askConfirm("Supprimer cette réclamation ?","Supprimer",function(){db.doc("reports/"+rm.dataset.rm2).delete().then(render)});return}
  var et=e.target.closest("[data-et]");if(et){etab=et.dataset.et;render();return}
- var mt=e.target.closest("#mtog");if(mt){MAP.open=!MAP.open;render();return}
- var rz=e.target.closest("[data-rz]");if(rz&&t){var f=+rz.dataset.rz;if(!f)RM.z=0;else{var nz=RM.z+f;if(nz<3||nz>18)return;RM.cx*=Math.pow(2,f);RM.cy*=Math.pow(2,f);RM.z=nz}drawMap(t);return}
- var mz=e.target.closest("[data-mz]");if(mz&&t){var f=+mz.dataset.mz;if(!f){MAP.z=1;MAP.ox=0;MAP.oy=0}else MAP.z=Math.max(.5,Math.min(40,MAP.z*f));drawMap(t);return}
+ if(e.target.closest("#mapMe")){mapLocate();return}
+  var mt=e.target.closest("#mtog");if(mt){MAP.open=!MAP.open;if(MAP.open&&MAP.net===false)MAP.net=undefined;render();return}
+ var mf=e.target.closest("[data-mfs]");if(mf){mapFs(mf.dataset.mfs==="1");return}
+ var rz=e.target.closest("[data-rz]");if(rz&&t){var f=+rz.dataset.rz;if(!f)RM.z=0;else RM.z=clp(RM.z+f,3,19);rmAll();return}
  var mp=e.target.closest("[data-mp]");if(mp&&t){if(MAP.moved)return;mapSheet(+mp.dataset.mp);return}
  var pm=e.target.closest("[data-pm]");if(pm&&t){var a=pm.dataset.pm.split(":"),p0=+a[0],p1=p0+ +a[1],V3=vord(t);if(p1<0||p1>=V3.length){msg(p1<0?"Déjà en premier.":"Déjà en dernier.");return}var nm=V3.map(function(j){return t.stops[j][0]}),x0=nm[p0];nm[p0]=nm[p1];nm[p1]=x0;S.ord=S.ord||{};S.ord[t.id]=nm;favSave();render();var el0=document.getElementById("s"+(V3[p0]+1));if(el0)el0.scrollIntoView({block:"center"});return}
  if(e.target.id==="shtog"){SHARED=!SHARED;render();return}
@@ -536,11 +571,11 @@ document.addEventListener("click",function(e){
  var tg=e.target.closest("[data-tg]");if(tg){toggleEd(tg.dataset.tg);return}
  var ed=e.target.closest("[data-ed]");if(ed&&t){openEd(t,ed.dataset.ed);return}
  var p=e.target.closest("[data-ph]");
- if(p&&t){var lb=document.getElementById("lb"),o="";t.stops[p.dataset.ph-1][6].forEach(function(x){if(x[0])o+='<div class="cap">'+esc(x[0])+'</div>';o+='<img src="'+(IMG[x[1]]||x[1])+'" alt="">'});document.getElementById("lbc").innerHTML=o;lb.scrollTop=0;lb.style.display="block";return}
+ if(p&&t){var lb=document.getElementById("lb"),o="";t.stops[p.dataset.ph-1][6].forEach(function(x){if(x[0])o+='<div class="cap">'+esc(x[0])+'</div>';o+='<img data-fs="'+esc(x[1])+'" src="'+PIMG(x[1])+'" alt="" onerror="this.style.display=\'none\'">'});document.getElementById("lbc").innerHTML=o;lb.scrollTop=0;lb.style.display="block";return}
  if(e.target.id==="lbx"||e.target.id==="lb"||e.target.id==="lbc"){document.getElementById("lb").style.display="none";return}
  if(e.target.id==="reset"&&t){askConfirm("Tout décocher et recommencer la tournée ?","Recommencer",function(){S.done[t.id]={};if(S.logs[t.id])S.logs[t.id].stops={};save();sync(t);render();window.scrollTo(0,0)});return}
 });
-window.addEventListener("hashchange",function(){render();window.scrollTo(0,0)});
+window.addEventListener("hashchange",function(){mapFs(false);render();window.scrollTo(0,0)});
 document.addEventListener("visibilitychange",function(){if(!document.hidden&&S.date!==today())render()});
 setInterval(function(){if(S.date!==today())render()},60000);
 </script>
